@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build" 
+
+[project]
+name = "secots"
+version = "0.1"
+dependencies = [
+  "numpy",
+]
+authors = [
+  {name = "Jens Flemming", email = "jens.flemming@fh-zwickau.de"},
+]
+maintainers = [
+  {name = "Jens Flemming", email = "jens.flemming@fh-zwickau.de"},
+]
+description = "Calculate the smallest enclosing circle of a point cloud on a (hemi)sphere in linear time with a Welzl-type algorithm."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["smallest enclosing circle", "sphere", "point cloud", "hemisphere", "Welzl"]
+
+[project.urls]
+Documentation = "https://github.com/jeflem/secots/blob/main/README.md"
+Repository = "https://github.com/jeflem/secots.git"
+Issues = "https://github.com/jeflem/secots/issues"
+Changelog = "https://github.com/jeflem/secots/blob/master/CHANGELOG.md"

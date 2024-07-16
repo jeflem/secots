@@ -1,6 +1,12 @@
-# Provide the function smallest_circle, which takes a list of longitude-latitude
-# pairs and returns center and radius of the smallest circle enclosing all
-# points form the list.
+'''
+Provide the function smallest_circle, which takes a list of longitude-latitude
+pairs and returns center and radius of the smallest circle enclosing all points
+form the list.
+
+Exception NotHemisphereError is raised if point cloud is not contained in a
+hemisphere.
+'''
+
 
 import numpy as np
 
@@ -29,7 +35,8 @@ def _lonlat2xyz(lonlat):
     Convert longitudes/latitudes on the unit sphere to xyz coordinates.
     
     :param ndarray lonlat: NumPy array of shape (n, 2) of longitudes/latitudes.
-    :return ndarray: NumPy array of shape (n, 3) of xyz coordinates.
+    :return: NumPy array of shape (n, 3) of xyz coordinates.
+    :rtype: ndarray
     '''
 
     lonlat = lonlat * np.pi / 180
@@ -49,7 +56,8 @@ def _xyz2lonlat(xyz):
     Convert xyz coordinates to longitudes/latitudes on the unit sphere.
     
     :param ndarray xyz: NumPy array of shape (n, 3) of xyz coordinates.
-    :return ndarray: NumPy array of shape (n, 2) of longitudes/latitudes.
+    :return: NumPy array of shape (n, 2) of longitudes/latitudes.
+    :rtype: ndarray
     '''
 
     lon = np.arctan2(xyz[:, 1], xyz[:, 0])
@@ -68,9 +76,11 @@ def _welzl(points, bpoints):
                            (xyz coordinates).
     :param ndarray bpoints: NumPy array of shape (m, 3) of boundary points
                            (xyz coordinates).
-    :return (ndarray, float): Unit vector u (NumPy array of shape (3, )) and
-                              number t defining the circle as the intersection
-                              of the unit sphere and the plane np.dot(u, x)=t.
+    :return: Unit vector u (NumPy array of shape (3, )) and number t defining
+             the circle as the intersection of the unit sphere and the plane
+             np.dot(u, x) == t.
+    :rtype: (ndarray, float)
+    :raises NotHemisphereError: If point cloud is not contained in a hemisphere.
     '''
 
     # 3 boundary points uniquely define the circle
@@ -116,9 +126,9 @@ def smallest_circle(points):
 
     :param ndarray points: NumPy array of shape (n, 2) of points to enclose
                            (longitude/latitude pairs).
-    :return (float, float, float): Longitude, latitude of center and radius of
-                                   smallest enclosing circle. Radius is measured
-                                   along the sphere's surface.
+    :return: Longitude, latitude of center and radius of smallest enclosing
+             circle. Radius is measured along the sphere's surface.
+    :rtype: (float, float, float)
     '''
 
     # trivial cases

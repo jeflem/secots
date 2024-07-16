@@ -12,7 +12,16 @@ __all__ = [
 
 
 class NotHemisphereError(ValueError):
-    ''' Raise if point cloud is not contained in a hemisphere. '''
+    '''
+    Raise if point cloud is not contained in a hemisphere. The points attribute
+    contains a (4, 2) shaped NumPy array of 4 points (longtitudes/latitudes)
+    from the point cloud identified to be not coverable by a hemisphere.
+    '''
+
+    def __init__(self, points):
+        self.message = 'Points not contained in a hemisphere!'
+        self.points = points
+        super().__init__() 
 
 
 def _lonlat2xyz(lonlat):
@@ -77,8 +86,10 @@ def _welzl(points, bpoints):
             u = u / np.linalg.norm(u)
             t = 0
         # more than hemisphere?
-        if (np.matmul(points, u) < t).any():
-            raise NotHemisphereError()
+        for point in points:
+            if np.dot(points, u) < t:
+                bpoints_new = np.concatenate((bpoints, [point]), axis=0)
+                raise NotHemisphereError(_xyz2lonlat(bpoints_new))
         return u, t
     
     # make smallest circle for 2 points (including all boundary points)

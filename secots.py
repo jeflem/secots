@@ -125,11 +125,17 @@ def smallest_circle(points):
     Raises NotHemisphereError if points are not contained in a hemisphere.
 
     :param ndarray points: NumPy array of shape (n, 2) of points to enclose
-                           (longitude/latitude pairs).
+                           (longitude/latitude pairs). Compatible types like
+                           list of 2-tuples are allowed, too. Compatible is
+                           what becomes an (n, 2) array if put into np.array.
     :return: Longitude, latitude of center and radius of smallest enclosing
              circle. Radius is measured along the sphere's surface.
     :rtype: (float, float, float)
     '''
+
+    points = np.array(points)
+    if points.ndim != 2 or points.shape[1] != 2:
+        raise ValueError('Points have to be provided as (n, 2) shaped NumPy array or compatible type!')
 
     # trivial cases
     if points.shape[0] == 0:

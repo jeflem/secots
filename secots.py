@@ -96,10 +96,11 @@ def _welzl(points, bpoints):
             u = u / np.linalg.norm(u)
             t = 0
         # more than hemisphere?
-        for point in points:
-            if np.dot(points, u) < t:
-                bpoints_new = np.concatenate((bpoints, [point]), axis=0)
-                raise NotHemisphereError(_xyz2lonlat(bpoints_new))
+        not_in_circle = np.where(np.matmul(points, u) < t)[0]
+        if len(not_in_circle) > 0:
+            new_bpoint = points[not_in_circle[0]]
+            bpoints_new = np.concatenate((bpoints, [new_bpoint]), axis=0)
+            raise NotHemisphereError(_xyz2lonlat(bpoints_new))
         return u, t
     
     # make smallest circle for 2 points (including all boundary points)

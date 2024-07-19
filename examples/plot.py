@@ -58,6 +58,14 @@ points = [(n['lon'], n['lat']) for n in objects if n.get('type') == 'node']
 assert len(points) >= 3, 'There are less than 3 points.'
 print(f'Got {len(points)} points from OSM.')
 
+
+# points = [
+#     (-120, -30),
+#     (0, -30),
+#     (120, -30),
+#     (0, 90)
+# ]
+
 # smallest circle
 print('Calculating smallest enclosing circle...')
 try:
@@ -101,22 +109,21 @@ if bpoints is not None:
 # many points relevant for circle size are removed and that the cloud's shape is
 # still recognizable. If points are not contained in a hemisphere choose points
 # uniformly at random.)
-rng = np.random.default_rng(0)
-if bpoints is None:
-    u = secots._lonlat2xyz(np.array([[lon, lat]]))[0, :]  # center
-    d = np.cos(r)  # distance of circle's plane to origin
-    R = np.sqrt(1 - d ** 2)  # radius of circle in circle's plane
-    dists = ((points - d * u.reshape(1, 3)) ** 2).sum(axis=1)  # squared distances
-    probs = (dists / (R ** 2)) ** 4  # 4 is somewhat arbitrary (should be > 1)
-    probs = probs / probs.sum()
-else:
-    probs = None
-n = min(MAX_POINTS, points.shape[0])
-points = np.concatenate((
-    rng.choice(points, n // 2, replace=False, p=probs),
-    rng.choice(points, n // 2, replace=False)
-), axis=0)
-# u, d, R will be reused below
+if points.shape[0] > MAX_POINTS:
+    rng = np.random.default_rng(0)
+    if bpoints is None:
+        u = secots._lonlat2xyz(np.array([[lon, lat]]))[0, :]  # center
+        d = np.cos(r)  # distance of circle's plane to origin
+        R = np.sqrt(1 - d ** 2)  # radius of circle in circle's plane
+        dists = ((points - d * u.reshape(1, 3)) ** 2).sum(axis=1)  # squared distances
+        mask = dists > 0.95 * (R ** 2)
+        n = min(mask.sum(), MAX_POINTS // 2)
+        points = np.concatenate((
+            rng.choice(points[mask], n, replace=False),
+            rng.choice(points[np.logical_not(mask)], MAX_POINTS - n, replace=False)
+        ), axis=0)
+    else:
+        points = rng.choice(points, MAX_POINTS, replace=False)
 
 # plot points
 fig.add_trace(
@@ -141,6 +148,7 @@ if bpoints is not None:
 
 # plot center point
 if bpoints is None:
+    u = secots._lonlat2xyz(np.array([[lon, lat]]))[0, :]
     fig.add_trace(
         go.Scatter3d(
             x=[u[0]], y=[u[1]], z=[u[2]],
@@ -156,6 +164,8 @@ if bpoints is None:
 # and directions v and w (unit vectors). Then alpha and beta are chosen to lie
 # on a circle of appropriate radius.)
 if bpoints is None:
+    d = np.cos(r)  # distance of circle's plane to origin
+    R = np.sqrt(1 - d ** 2)  # radius of circle in circle's plane
     # fixed point on the plane (starting point for direction vectors)
     p = d * u
     # get one direction vector (orthogonal to u, guaranteed to not be zero)

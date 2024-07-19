@@ -96,9 +96,9 @@ def _welzl(points, bpoints):
             u = u / np.linalg.norm(u)
             t = 0
         # more than hemisphere?
-        not_in_circle = np.where(np.matmul(points, u) < t)[0]
-        if len(not_in_circle) > 0:
-            new_bpoint = points[not_in_circle[0]]
+        mask = np.matmul(points, u) < t
+        if mask.any():
+            new_bpoint = points[np.where(mask)[0][0]]
             bpoints_new = np.concatenate((bpoints, [new_bpoint]), axis=0)
             raise NotHemisphereError(_xyz2lonlat(bpoints_new))
         return u, t

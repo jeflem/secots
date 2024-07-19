@@ -17,7 +17,7 @@ import secots
 # country to show (value of "name:en" key in OSM)
 # (for instance, Belgium is contained in a hemisphere, France with its overseas
 # territories is not)
-COUNTRY = 'France'
+COUNTRY = 'Belgium'
 
 # file name for output of interactive plot
 HTML_FILE = 'plot.html'
@@ -57,14 +57,6 @@ assert len(objects) > 0, f'Overpass server doesn\'t return anything.'
 points = [(n['lon'], n['lat']) for n in objects if n.get('type') == 'node']
 assert len(points) >= 3, 'There are less than 3 points.'
 print(f'Got {len(points)} points from OSM.')
-
-
-# points = [
-#     (-120, -30),
-#     (0, -30),
-#     (120, -30),
-#     (0, 90)
-# ]
 
 # smallest circle
 print('Calculating smallest enclosing circle...')

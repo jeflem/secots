@@ -66,7 +66,7 @@ def _xyz2lonlat(xyz):
     return np.stack((lon, lat), axis=1) / np.pi * 180
 
 
-def _welzl(points, bpoints):
+def _welzl(points, bpoints, hemi_test):
     '''
     Apply a Welzl-type algorithm to find the smallest circle enclosing points
     and having bpoints on its boundary. Raises NotHemisphereError if points are
@@ -76,6 +76,10 @@ def _welzl(points, bpoints):
                            (xyz coordinates).
     :param ndarray bpoints: NumPy array of shape (m, 3) of boundary points
                            (xyz coordinates).
+    :param bool hemi_test: Set to True to check whether points are contained in
+                           a hemisphere. If not, NotHemisphereError is raised.
+                           Test can be skipped (False) if we are sure that
+                           points are contained in a hemisphere.
     :return: Unit vector u (NumPy array of shape (3, )) and number t defining
              the circle as the intersection of the unit sphere and the plane
              np.dot(u, x) == t.
@@ -96,11 +100,13 @@ def _welzl(points, bpoints):
             u = u / np.linalg.norm(u)
             t = 0
         # more than hemisphere?
-        mask = np.matmul(points, u) < t
-        if mask.any():
-            new_bpoint = points[np.where(mask)[0][0]]
-            bpoints_new = np.concatenate((bpoints, [new_bpoint]), axis=0)
-            raise NotHemisphereError(_xyz2lonlat(bpoints_new))
+        if hemi_test:
+            print('h', end='')
+            mask = np.matmul(points, u) < t
+            if mask.any():
+                new_bpoint = points[np.where(mask)[0][0]]
+                bpoints_new = np.concatenate((bpoints, [new_bpoint]), axis=0)
+                raise NotHemisphereError(_xyz2lonlat(bpoints_new))
         return u, t
     
     # make smallest circle for 2 points (including all boundary points)
@@ -113,22 +119,29 @@ def _welzl(points, bpoints):
 
     # check whether points are contained in circle
     for i in range(2 - bpoints.shape[0], points.shape[0]):
-        if np.dot(u, points[i, :]) < t:
+        dot_prod = np.dot(u, points[i, :])
+        if dot_prod < t:
+            hemi_test = dot_prod < -t
             bpoints_new = np.concatenate((bpoints, [points[i, :]]), axis=0)
-            u, t = _welzl(points[:i, :], bpoints_new)
+            u, t = _welzl(points[:i, :], bpoints_new, hemi_test)
 
     return u, t
 
 
-def smallest_circle(points):
+def smallest_circle(points, hemi_test=True):
     '''
     Find the smallest circle enclosing all given points on the unit sphere.
-    Raises NotHemisphereError if points are not contained in a hemisphere.
 
     :param ndarray points: NumPy array of shape (n, 2) of points to enclose
                            (longitude/latitude pairs). Compatible types like
                            list of 2-tuples are allowed, too. Compatible is
                            what becomes an (n, 2) array if put into np.array.
+    :param bool hemi_test: Set to True (default) to check whether points are
+                           contained in a hemisphere. If not, NotHemisphereError
+                           is raised. Test can be skipped (False) if you are
+                           sure that points are contained in a hemisphere. This
+                           saves computation time, but will yield wrong results
+                           if points aren't contained in a hemisphere.
     :return: Longitude, latitude of center and radius of smallest enclosing
              circle. Radius is measured along the sphere's surface.
     :rtype: (float, float, float)
@@ -152,7 +165,7 @@ def smallest_circle(points):
     points = _lonlat2xyz(points)
 
     # non-trivial case
-    u, t = _welzl(points, np.empty((0, 3)))
+    u, t = _welzl(points, np.empty((0, 3)), hemi_test)
     r = np.arccos(t)
     lon, lat = _xyz2lonlat(u.reshape(1, 3))[0, :]
 

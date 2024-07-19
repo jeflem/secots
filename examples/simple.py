@@ -13,6 +13,6 @@ points = [
     (20, 30)
 ]
 
-lon, lat, r = secots.smallest_circle(points)
+lon, lat, r = secots.smallest_circle(points, hemi_test=False)
 
 print(f'center: ({lon}, {lat}), radius: {r}')

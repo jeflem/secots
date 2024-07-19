@@ -144,6 +144,10 @@ def smallest_circle(points):
     if points.shape[0] == 1:
         return *points[0, :], 0
 
+    # random permutation
+    rng = np.random.default_rng(0)
+    points = rng.permutation(points, axis=0)
+
     # convert to xyz
     points = _lonlat2xyz(points)
 

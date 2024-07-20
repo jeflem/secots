@@ -101,7 +101,6 @@ def _welzl(points, bpoints, hemi_test):
             t = 0
         # more than hemisphere?
         if hemi_test:
-            print('h', end='')
             mask = np.matmul(points, u) < t
             if mask.any():
                 new_bpoint = points[np.where(mask)[0][0]]
@@ -117,7 +116,7 @@ def _welzl(points, bpoints, hemi_test):
     u = u / norm_u
     t = (1 + np.dot(x1, x2)) / norm_u
 
-    # check whether points are contained in circle
+    # check whether points are contained in circle, extend cicle if necessary
     for i in range(2 - bpoints.shape[0], points.shape[0]):
         dot_prod = np.dot(u, points[i, :])
         if dot_prod < t:

@@ -30,6 +30,44 @@ class NotHemisphereError(ValueError):
         super().__init__() 
 
 
+class _DLLArray:
+    '''
+    Doubly linked list of fixed size allowing for moving an item to the list's
+    top in O(1) time. The list can only hold integers, which are intended to be
+    used as indices to some data array.
+    '''
+    
+    def __init__(self, n):
+        ''' Create a list of length n. '''
+        
+        self.first = 0
+        self._prevs = [-1] + list(range(0, n - 1))
+        self._nexts = list(range(1, n)) + [-1]
+
+    def prev(self, i):
+        ''' Get predecessor of item i. Returns -1 if i is the first item. '''
+        
+        return self._prevs[i]
+        
+    def next(self, i):
+        ''' Get successor of item i. Returns -1 if i is the last item. '''
+        
+        return self._nexts[i]
+
+    def move_to_top(self, i):
+        ''' Move item i to the list's top. '''
+        
+        if i == self.first:
+            return
+        
+        self._nexts[self._prevs[i]] = self._nexts[i]
+        if self._nexts[i] != -1:
+            self._prevs[self._nexts[i]] = self._prevs[i]
+        self._nexts[i] = self.first
+        self._prevs[i] = -1
+        self.first = i
+    
+
 def _lonlat2xyz(lonlat):
     '''
     Convert longitudes/latitudes on the unit sphere to xyz coordinates.
@@ -66,7 +104,7 @@ def _xyz2lonlat(xyz):
     return np.stack((lon, lat), axis=1) / np.pi * 180
 
 
-def _welzl(points, bpoints, hemi_test):
+def _welzl(points, bpoints, order, n, hemi_test):
     '''
     Apply a Welzl-type algorithm to find the smallest circle enclosing points
     and having bpoints on its boundary. Raises NotHemisphereError if points are
@@ -76,6 +114,9 @@ def _welzl(points, bpoints, hemi_test):
                            (xyz coordinates).
     :param ndarray bpoints: NumPy array of shape (m, 3) of boundary points
                            (xyz coordinates).
+    :param _DLLArray order: Doubly link list describing in which order points
+                            should be processed.
+    :param int n: Number of points to process following the given order.
     :param bool hemi_test: Set to True to check whether points are contained in
                            a hemisphere. If not, NotHemisphereError is raised.
                            Test can be skipped (False) if we are sure that
@@ -101,28 +142,48 @@ def _welzl(points, bpoints, hemi_test):
             t = 0
         # more than hemisphere?
         if hemi_test:
-            mask = np.matmul(points, u) < t
-            if mask.any():
-                new_bpoint = points[np.where(mask)[0][0]]
-                bpoints_new = np.concatenate((bpoints, [new_bpoint]), axis=0)
-                raise NotHemisphereError(_xyz2lonlat(bpoints_new))
+            i = order.first
+            for _ in range(n):
+                if np.dot(points[i, :], u) < t:
+                    bpoints_new = np.concatenate((bpoints, [points[i, :]]), axis=0)
+                    raise NotHemisphereError(_xyz2lonlat(bpoints_new))
+                i = order.next(i)
         return u, t
     
     # make smallest circle for 2 points (including all boundary points)
-    n = 2 - bpoints.shape[0]  # number of non-boundary points to consider
-    x1, x2 = np.concatenate((points[:n, :], bpoints), axis=0)
+    if bpoints.shape[0] == 2:
+        x1, x2 = bpoints
+        skip = 0
+    elif bpoints.shape[0] == 1:
+        x1 = bpoints[0, :]
+        x2 = points[order.first, :]
+        skip = 1
+    else:
+        x1 = points[order.first, :]
+        x2 = points[order.next(order.first), :]
+        skip = 2
     u = x1 + x2
     norm_u = np.linalg.norm(u)
     u = u / norm_u
     t = (1 + np.dot(x1, x2)) / norm_u
 
-    # check whether points are contained in circle, extend cicle if necessary
-    for i in range(2 - bpoints.shape[0], points.shape[0]):
-        dot_prod = np.dot(u, points[i, :])
-        if dot_prod < t:
-            hemi_test = dot_prod < -t
-            bpoints_new = np.concatenate((bpoints, [points[i, :]]), axis=0)
-            u, t = _welzl(points[:i, :], bpoints_new, hemi_test)
+    # check whether points are contained in circle, extend circle if necessary
+    i = order.first
+    for n_done in range(n):
+        if skip > 0:
+            skip -= 1
+        else:
+            dot_prod = np.dot(u, points[i, :])
+            if dot_prod < t:
+                hemi_test = dot_prod < -t
+                bpoints_new = np.concatenate((bpoints, [points[i, :]]), axis=0)
+                u, t = _welzl(points, bpoints_new, order, n_done, hemi_test)
+                # move-to-front heuristic
+                if order.prev(i) != -1 and order.next(i) != -1:
+                    new_i = order.prev(i)
+                    order.move_to_top(i)
+                    i = new_i
+        i = order.next(i)
 
     return u, t
 
@@ -164,7 +225,8 @@ def smallest_circle(points, hemi_test=True):
     points = _lonlat2xyz(points)
 
     # non-trivial case
-    u, t = _welzl(points, np.empty((0, 3)), hemi_test)
+    order = _DLLArray(points.shape[0])
+    u, t = _welzl(points, np.empty((0, 3)), order, points.shape[0], hemi_test)
     r = np.arccos(t)
     lon, lat = _xyz2lonlat(u.reshape(1, 3))[0, :]
 

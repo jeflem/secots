@@ -135,11 +135,8 @@ def _welzl(points, bpoints, order, n, hemi_test):
             norm_u = np.linalg.norm(u)
             u = u / norm_u
             t = 1 / norm_u
-        except np.linalg.LinAlgError: # all 3 points on great circle
-            x1, x2, x3 = bpoints
-            u = np.cross(x2 - x1, x3 - x1)
-            u = u / np.linalg.norm(u)
-            t = 0
+        except np.linalg.LinAlgError:  # all 3 points on great circle
+            raise NotHemisphereError(_xyz2lonlat(bpoints))
         # more than hemisphere?
         if hemi_test:
             i = order.first
@@ -164,6 +161,9 @@ def _welzl(points, bpoints, order, n, hemi_test):
         skip = 2
     u = x1 + x2
     norm_u = np.linalg.norm(u)
+    if norm_u < 1e-15:  # points antipodal
+        bpoints_new = np.concatenate(([x1], [x2]), axis=0)
+        raise NotHemisphereError(_xyz2lonlat(bpoints_new))
     u = u / norm_u
     t = (1 + np.dot(x1, x2)) / norm_u
 
@@ -175,7 +175,7 @@ def _welzl(points, bpoints, order, n, hemi_test):
         else:
             dot_prod = np.dot(u, points[i, :])
             if dot_prod < t:
-                hemi_test = dot_prod < -t
+                hemi_test = dot_prod <= -t
                 bpoints_new = np.concatenate((bpoints, [points[i, :]]), axis=0)
                 u, t = _welzl(points, bpoints_new, order, n_done, hemi_test)
                 # move-to-front heuristic

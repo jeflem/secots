@@ -2,7 +2,7 @@
 
 Given a point cloud on a sphere this Python package computes center and radius of the smallest (spherical) circle enclosing the point cloud. The algorithm takes linear time and automatically detects whether the point cloud is contained in a hemisphere. If so, the smalles enclosing circle is returned. Else, an exception is raised.
 
-See [A simple linear time algorithm for smallest enclosing circles on the (hemi)sphere](https://TODO) for details on the algorithm.
+See [A simple linear time algorithm for smallest enclosing circles on the (hemi)sphere](https://arxiv.org/pdf/2407.19840) for details on the algorithm.
 
 ## Installation
 Run
@@ -30,7 +30,7 @@ print(f'center: ({lon}, {lat}), radius: {r}')
 ```
 More examples are in the repo's `example` directory.
 
-The `smallest_circle` function raises `NotHemisphereError` if the point cloud is not contained in a hemisphere. In this case the algorithm is not able to compute a smallest enclosing circle. See [above mentioned paper](http://TODO) for details.
+The `smallest_circle` function raises `NotHemisphereError` if the point cloud is not contained in a hemisphere. In this case the algorithm is not able to compute a smallest enclosing circle. See [above mentioned paper](https://arxiv.org/pdf/2407.19840) for details.
 
 The `smallest_circle` function accepts an additional keyword argument `hemitest`. Use `hemitest=False` if you are very sure that your point cloud is contained in a hemisphere. This saves (an almost negligible amount of) computation time. Example:
 ```python

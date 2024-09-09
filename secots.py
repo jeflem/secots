@@ -211,6 +211,9 @@ def smallest_circle(points, hemi_test=True):
     if points.ndim != 2 or points.shape[1] != 2:
         raise ValueError('Points have to be provided as (n, 2) shaped NumPy array or compatible type!')
 
+    # remove duplicates
+    points = np.unique(points, axis=0)
+
     # trivial cases
     if points.shape[0] == 0:
         raise ValueError('Cannot compute smallest enclosing circle for empty set of points!')
